@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  password      String
+  firstName     String
+  lastName      String
+  resetToken    String?
+  resetTokenExpiresAt DateTime?
+  role          String     @default("VIEWER")
+  isActive      Boolean    @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  assignedThreats   Threat[]
+  incidents         Incident[]  @relation("AssignedIncidents")
+  createdIncidents  Incident[]  @relation("CreatedIncidents")
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  sessions          Session[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  userId      String
+  refreshToken String  @unique
+  userAgent   String?
+  ipAddress   String?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+}
+
+model Threat {
+  id              String   @id @default(uuid())
+  title           String
+  description     String
+  sourceIP        String
+  destinationIP   String?
+  attackType      String
+  severity        String   @default("MEDIUM")
+  status          String   @default("NEW")
+  assignedToId    String?
+  assignedAnalyst String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  assignedTo  User?      @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  incidents   Incident[]
+
+  @@index([severity])
+  @@index([status])
+  @@index([attackType])
+  @@index([sourceIP])
+  @@index([createdAt])
+}
+
+model Incident {
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  priority      String   @default("MEDIUM")
+  status        String   @default("OPEN")
+  threatId      String?
+  assignedToId  String?
+  createdById   String
+  notes         String?
+  closedAt      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  threat     Threat?  @relation(fields: [threatId], references: [id], onDelete: SetNull)
+  assignedTo User?    @relation("AssignedIncidents", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy  User     @relation("CreatedIncidents", fields: [createdById], references: [id])
+
+  @@index([priority])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  userEmail String
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model ThreatFeed {
+  id          String   @id @default(uuid())
+  type        String   @default("ip")
+  value       String
+  description String?
+  riskScore   Int      @default(50)
+  isActive    Boolean  @default(true)
+  source      String   @default("internal")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([type, value])
+  @@index([type])
+  @@index([riskScore])
+}
