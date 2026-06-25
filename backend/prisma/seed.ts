@@ -158,7 +158,7 @@ async function seed() {
         firstName: data.firstName,
         lastName: data.lastName,
         role: data.role,
-        isActive: Math.random() > 0.1,
+        isActive: data.role === 'ADMIN' ? true : Math.random() > 0.1,
         lastLogin,
         createdAt: randomDate(60),
       },
