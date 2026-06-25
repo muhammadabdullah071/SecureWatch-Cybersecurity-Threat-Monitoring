@@ -4,6 +4,9 @@ import path from 'path'
 
 export default defineConfig({
   base: '/SecureWatch-Cybersecurity-Threat-Monitoring/',
+  build: {
+    outDir: 'docs',
+  },
   plugins: [react()],
   resolve: {
     alias: {
